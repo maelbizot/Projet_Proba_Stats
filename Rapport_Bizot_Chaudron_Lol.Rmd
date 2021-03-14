@@ -1,0 +1,309 @@
+---
+title: "PROJET PROBABILITES STATISTIQUES : League of Legends"
+author : "Bizot Mael, Chaudron Charles"
+date : "5 janvier 2021"
+output: pdf_document
+---
+
+# Projet de probabilité et de statistiques sur League of Legends
+
+## rendu : 05/01/2021 12:00
+
+Pour cet analyse de données, nous nous sommes principalement penché sur les 1040 parties de leagues of legends et avons tout de meme utilisé le fichier Timeline d'une partie afin d'appuyer un peu plus nos analyses. 
+
+Lorsque nous avons découvert le sujet, nous avons eu un peu de mal à trouver une ligne directrice car nous avons mis du temps avant de bien saisir toutes les variables présentes dans la base de données. Puis finalement nous nous somme penché sur la variable qui selon nous est la plus importante dans une partie : la victoire ou la defaite. En effet nous avons voulu montrer grace a nos analyse, quels sont les éléments les plus décisive lors d'une partie. Et nous avons voulu savoir ce qui faisait la différence entre une victoire et une défaite.
+
+Nos analyse portent principalement sur les Variables suivantes :
+-les golds
+-les kills
+-les monstre epiques tués
+-le nombre de mort
+-les champions
+
+
+
+<!--Variable nécessaire -->
+
+```{r}
+
+library(readr)
+library(dplyr)
+library(questionr)
+library(OneTwoSamples)
+
+
+player_team_lol_data <- read_csv("C:/Users/maelb/Desktop/cours/L3/proba stat/cours lol/player_team_lol_data.csv")
+
+lol <- player_team_lol_data
+
+```
+
+## Les Golds
+
+Dans un premier temps, nous allons comparer les golds moyens d'une équipe qui perd, face aux golds moyen de l'équipe gagnante 
+
+```{r}
+
+les_wins <- filter(player_team_lol_data, winTeam1 == "Win")
+
+les_loose <- filter(player_team_lol_data, winTeam1 == "Fail")
+
+ moyenne_gold_gagnant <- mean(les_wins$gold1)
+ 
+ print(moyenne_gold_gagnant)
+ 
+ 
+ moyenne_gold_perdant <- mean(les_loose$gold1)
+ 
+ print(moyenne_gold_perdant)
+
+```
+
+Ici on peut constater que l'équipe perdante a environ 2000 golds de moins que l'équipe gagnante. Cela nous donne donc un première indice les critères de victoire. Ici on constate que les golds sont important.
+
+### Corrélation entre les golds et les kills
+
+Par la suite nous avons voulu savoir comment etait obtenu ces golds. Nous avons donc decider de comparer les golds avec les kills. Pour cela nous avons regarder la potentiel corrélation entre ces deux variables.
+
+Ci-dessous, nous avons pris un échantillion de l'équipe 1.
+Nous avons mis les golds gagné de 3 des joueurs dans une variable et leur kills respectif afin de pouvoir calculer le coefficient de person et les afficher à l'aide d'un plot.
+
+```{r}
+les_golds <- c(lol$gold1, lol$gold2, lol$gold3)
+les_kills <- c(lol$kills1, lol$kills2, lol$kills3)
+
+
+relation_gold_kills <- plot(les_golds, les_kills, main = "relation entre les kills et les golds au cours d'une partie")
+print(relation_gold_kills)
+
+correlation_gold_kills <- cor(les_golds, les_kills)
+print(correlation_gold_kills)
+
+```
+ 
+Sur le graphique, nous constatons bien que le nombre de golds augmentent en fonction du nombre de kills. De plus, le coefficient de Pearson étant proche de 1 nous pouvons validé cette corrélation. 
+Pour synthétisé nos deux analyse précédentes, nous pouvons dire que les kills sont assez décisifs dans le cours d'une partie car ils apportent des golds et les golds sont généralement plus élévé chez l'équipe gagnante.
+
+### Golds au sein d'une équipe et taux de victoire
+
+afin de confirmer cette hypothèse et montrer que LoL est un jeux d'équipe, nous allons observer le taux de victoire en fonction du nombre de personne ayant atteint un certain nombre de golds. Car en effet, à partir d'un certain nombre de gold le champion que le joueurs joue devient assez puissant pour determiner le cours d'une partie. Afin d'appuyer nos hypothèses, nous avons re-pris les golds des joueurs 1, 2 et 3.
+
+
+```{r}
+
+bcp_gold <-(filter(lol, gold1 > 10000))
+freq(bcp_gold$winTeam1)
+ 
+ 
+bcp_gold2 <-(filter(lol, gold2 > 10000 & gold1 > 10000))
+freq(bcp_gold2$winTeam1)
+ 
+bcp_gold3 <-(filter(lol, gold2 > 10000 & gold1 > 10000 & gold3 > 10000))
+freq(bcp_gold3$winTeam1)
+ 
+bcp_gold4 <-(filter(lol, gold2 > 10000 & gold1 > 10000 & gold3 > 10000 & gold4 > 10000))
+freq(bcp_gold4$winTeam1)
+
+```
+
+Graçe à ces fréquences nous pouvons donc affirmer que le taux de victoire augmente si le nombre de joueurs ayant atteint 10K golds au cours d'une partie augmente aussi. Mais ce taux de victoire tend vers 60%. Ce phénomène peut s'expliquer par le fait que si la plupart des joueurs de l'équipe 1 ont atteint ce montant, il est aussi probable que plusieurs membre de l'équipe adverse l'ai atteint aussi, ce qui "équilibre" un peu la balance.
+
+### Impact des Monstres épiques
+
+Après nous ètre interessé à ces deux variables, les golds et les kills, nous avons voulu voir l'impact qu'avait les monstres épiques sur le cours d'une partie. Les deux monstres épiques présent sur la faille de l'invocateur sont le Baron nashor et le Dragon. Il faut savoir que ces deux monstres réaparaissent quelque minutes après avoir étét tué et c'est donc pour cela qu'une équipe peut en avoir tué plusieurs.
+
+Encore une fois, nous nous sommes penché sur le taux de victoire en fonction du nombre de Baron Nashor tué par une équipe.
+
+Nous avons donc mis dans une table les victoires de l'équipe 1 et leur nombre de baron tué.
+
+
+```{r}
+tab_baron <- table(lol$winTeam1, lol$baronKillsTeam1) 
+
+cprop(tab_baron)
+
+```
+
+Graçe aux pourcentages que nous observons, nous pouvons conclure que le Baron nashor est un atout majeur pour la victoire. Nous avons voulu savoir ce qui le rendait important. Nous avons donc décider de voir si il donné des golds à l'équipe qui le tué.
+
+### Baron nashor et Golds
+
+Afin de verifier ces informations, nous allons utiliser le fichier qui détails toutes les actions d'une partie (fichier Timeline). La partie que nous allons analysé a duré 27 minutes.
+
+En observant les différents évenements qui se sont déroulé au cours de cette partie, nous avons trouvé qu'un Baron nashor a été tué à 25 minutes de jeux. Nous avons par la suite cherché qui était le tueur du nashor.
+
+
+```{r}
+timeline <- read_csv("C:/Users/maelb/Desktop/cours/L3/proba stat/cours lol/timeline.csv")
+
+print(timeline$`events/20/monsterType`)
+print(timeline$`events/20/killerId`)
+print(timeline$`participantFrames/4/totalGold`)
+
+```
+
+Puis en second lieux, nous avons crées deux tables comportant les golds de l'équipe ayant tué le nash avant, puis une autre comprtant les golds 1 min après le kills du nash afin de voir si le montant a augmenté ou non.
+
+```{r}
+gold_avant_nash = c(9676,9206,12715,10519,6682)
+
+gold_après_nash = c(10585,9562,13785,11104,6983)
+
+```
+
+Les deux échantillons sont appariés car ce sont les mêmes individus qui tuent le barons nashor
+
+
+```{r}
+t.test(gold_avant_nash, gold_après_nash, paired = T, alternative = "less")$p.value
+
+```
+La P-value étant très faible, on peut affirmer que le fait de tuer un baron nashor donne un avantage en gold.
+
+### Dragons et taux de victoire
+
+
+Afin de continuer dans l'analyse de l'impact des monstres épiques, nous avons voulu nous tourner vers le dragon. En effet, le dragon donne des stats Bonus en % à l'équipe qui la tue et nous voulions donc verifier si ces stats bonus sont essentiels pour gagner une partie.
+
+Pour ce faire, nous avons décider d'effectuer un test d'hypothèse : On veut affirmer avec un faible risque de se tromper que l'équipe qui a tué des dragons a plus de chance de gagner
+
+
+```{r}
+
+var_wins = var(les_wins$dragonKillsTeam1)
+var_loose = var(les_wins$dragonKillsTeam2)
+
+
+mean_test2(les_wins$dragonKillsTeam1, les_wins$dragonKillsTeam2, sigma = c(var_wins, var_loose), side = -1)$p_value
+
+```
+Au vu de la valeur du P-Value, nous pouvons valider notre hypothèse. Et confirmer que l'équipe ayant tué le plus de dragon a un taux de victoire plus elevé.
+
+On peut d'ailleur le constater aussi graçe à cette table qui regroupe les pourcentage de victoire en fonction du nombre de dragons tuées.
+
+```{r}
+tab_2 <- table(lol$winTeam1, lol$dragonKillsTeam1) 
+
+cprop(tab_2)
+
+```
+
+ afin de conclure sur l'importance des dragons sur LoL nous avons voulu démontrer par une loi de probabilité que le dragon permet de d'en gagner une plus facilement en effet j'ai reuni tout les parties ou les 5 joueurs de l'équipe 1 avait plus de gold que l'équipe 2 si on prend parmis tout ces matchs, quel est la  probabilité d'avoir au moins 2 dragons tué par l'équipe 1
+
+
+```{r}
+test_loi <- filter(lol, gold1 > gold6, gold2 > gold7, gold3 > gold8, gold4 > gold9, gold5> gold10)
+
+
+table_dragon_tue_equipe_gagnante <- table(test_loi$dragonKillsTeam1)
+freq(table_dragon_tue_equipe_gagnante)
+
+```
+ici on peut voir que la fréquence de 2 dragons tué est de 28.4% le pourcentage de chance est donc de 0.28 nous allons donc calculer la probabilité de trouvé un match ou l'équipe 1 a tué 2 dragons ici nous tirons au sort parmis les match ou l'équipe 1 a plus de gold que l'équipe 2 jusqu'a ce que nous obtenions un match.
+
+```{r}
+1-dgeom(3, 0.28)
+```
+
+ce test signifie que la probabilité de tirer au sort un match ou l'équipe 1 a tué deux dragons après 3 relance est deux 89%. autrement dit, la probabilité est très élevé car les équipes remportant les matchs ont tendance a plus tuer les drakes. De plus, on constate dans le jeux de données crée "test_loi", lorsque tout les joueurs d'une équipe on leur golds supérieur à leur opposants respectif, le taux de victoire est de 100 pour l'équipe ayant le plus de gold !
+
+### Choix du campion et taux de victoire
+
+Pour la prochaine analyse, nous avons décidé de nous interesser au taux de victoire en fonction de la présence de certain champions. En effet, certain champions apparaissent plus souvent que d'autre dans le jeux de données et nous voulions savoir si ces champions avaient un impact positif ou négatif.
+Nous avons donc regardé les ID de trois champions fréquemment joué graçe à cette commande
+
+```{r}
+champions_joue <- table(lol$championID1)
+```
+nous avons ensuite classé par ordre croissant et répété l'action jusqu'au ChampionID5. Nous avons remarqué que les champions les plus fréquement joué sont le numéro 236, 22, 202
+
+nous avons donc réunis le nombre de win et de loose de ces trois champions dans trois tableau différents afin de pouvoir en extraire les chiffres et créer une matrice. Le champion et lla victoire/defaite sont deux critère quelitatif, c'est pour cela que nous avons décider d'effectuer ce test d'indépendance
+
+```{r}
+champion_1 <-(filter(lol, championID1 == 236 | championID2 == 236 | championID3 == 30 | championID4 == 236 | championID5 == 236))
+
+win_champions_1<- table(champion_1$winTeam1)
+
+
+champion_2 <-(filter(lol, championID1 == 22 | championID2 == 22 | championID3 == 22 | championID4 == 22 | championID5 == 22))
+
+win_champions_2 <- table(champion_2$winTeam1)
+
+
+champion_3 <-(filter(lol, championID1 == 202 | championID2 == 202 | championID3 == 202 | championID4 == 202 | championID5 == 202))
+
+win_champions_3 <- table(champion_3$winTeam1)
+```
+
+Une fois ces tableaux crées nous avons pu extraire les chiffres pour en créer une matrice. Puis nous allons effectuer
+
+```{r}
+Independance_champion_victoire = matrix(c(64, 66, 76, 46, 50, 54), nrow = 2, byrow = T)
+chisq.test(Independance_champion_victoire)$p.value
+```
+
+ce résultat nous permet de pouvoir affirmer que les chapions choisis et le taux de victoire/defaite sont dépendants. On peut affirmer que le choix du champions influe aussi sur le taux de victoire.
+
+### Nombre de mort et taux de victoire
+
+Afin de completer notre dernière analyse, nous avons décider de nous intétesser aux nombre de mort dans une équipe afin de voir si eux aussi ont un impact négatif pour une équipe.
+
+Nous avons donc crée une table comportant les victoires et défaites d'une équipe ayant 5 joueurs avec au moins 5 morts chacun et au moins 1 des joueurs en face a - de 5 morts. Cela permet d'obtenir une table avec un taux de victoire très bas pour l'équipe avec beaucoups de deaths.
+
+```{r}
+bcp_mort <- filter(lol, deaths1 > 5, deaths2 > 5, deaths3 > 5, deaths4 > 5, deaths5 > 5, deaths6 < 5)
+
+tab_win_mort = table(bcp_mort$winTeam1)
+
+print(tab_win_mort)
+
+```
+
+On va donc chercher a savoir quel est la probabilité que l'équipe ayant beacoup de morts gagne pas plus de 5 match :
+
+
+```{r}
+ppois(5, 2)
+
+```
+
+On constate ici que la probabilité est hautement élevé, cela nous confire alors que le nombre de morts lors d'une partie est important, et que le fait de ne pas mourir beacoup l'est tout autant.
+
+
+## Conclusion
+
+Pour conclure, nous avons pu constater après chaque analyse que chaque critère que nous avons traité a sont importances au cours d'une partie : que ce soit les dragons
+tuées, les nashor tuées, le nombre de morts, le nombre de kills etc... Malgrès tout, nous avons pu relever que les golds sont un des critères majeur pour gagner une partie. Car, si un joueur a plus de gold, il pourra s'acheter plus d'item, il sera dont plus puissant dans la partie, il pourra donc tuer plus facilement ses adversaires et pourra donc aller plus facilement détruire les batiments ennemies !
+
+
+
+
+## Bilan (Charles)
+Au départ, le sujet ne me parlait pas vraiment car je n'avait jamais joué à league of legneds et j'avais du mal à saisir le fonctionnement du jeux. Cela a donc été un peu difficile de me lancer dans le projet. Cependant, au fur et a mesure de l'avancement je me suis mis à m'aproprier les données et à comprendre de mieux en mieux le jeux. Le projet était assez intéressant mais j'ai trouvé le fichier timeline assez compliqué à comprendre ce qui est assez dommage surtout que nous n'étions pas en presentiel et que cela rend les explications plus compliqué...
+
+Concernant la répartition des taches , j'ai effectué les analyse de stastiques descriptives. Mon but était  de nous ouvrir quelque piste afin de répondre à notre problématique principal.
+
+
+## Bilan (Mael)
+
+Pour ma part, lorsque j'ai appris que nous allions travailler sur league of legends j'ai été vraiment surpris et ravie à la fois car LoL est un de mes jeux préférés. Je connais très bien le jeux et il a été facile pour moi de comprendre les données etc car je connaissais déja tout le vocabulaire anglais lié à ce jeux. Cependant, étant un joueur habitué et experimenté je me suis parfois demandé si les analyses fournit était trop "simple" et evidente. Malgrès tout, le projet était très intéressant et assez concret. De plus, les jeux de donnnées étaient très complet et permettaient une assez grande liberté dans le choix de la problématique. Une difficulté aussi que j'ai eu pas mal de fois au cours du projet, c'est la fonction filter qui ne fonctionnait pas, j'ai mis pas mal de temps à résoudre ce problème et ça m'a pas mal bloqué dans l'avancement car la fonction est très utile.
+
+Pour ce qui est du travail fournit, je me suis occupé des test d'hypothèses et des analyse statistiques par l'intermédiaire de lois de probabilités.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
